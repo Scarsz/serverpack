@@ -1,0 +1,8 @@
+# Excerpt. PlotSquared itself is a premium Spigot resource, so its jar can't be fetched:
+# vendor it as plugins/PlotSquared.jar next to a `source = "local"` descriptor (here or in bases/plots).
+worlds:
+  plots:
+    plot:
+      size: 251
+    road:
+      width: 7

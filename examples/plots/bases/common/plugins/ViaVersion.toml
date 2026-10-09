@@ -1,0 +1,13 @@
+# Newest ViaVersion release on Hangar that supports the server's Minecraft version.
+source = "hangar"
+project = "ViaVersion/ViaVersion"
+
+[resolved]
+version = "5.12.1"
+url = "https://hangarcdn.papermc.io/plugins/ViaVersion/ViaVersion/versions/5.12.1/PAPER/ViaVersion-5.12.1.jar"
+sha256 = "bab94b846e1d2bf516c070562d0271b32382afd41870bf0d3a7993b73a36f791"
+size = 6503216
+mc_version = "1.21.10"
+loader = "paper"
+compat = "yes"
+spec_hash = "02290b7e353ff348"

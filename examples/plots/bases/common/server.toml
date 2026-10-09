@@ -1,0 +1,16 @@
+# Shared by every server in this repo.
+
+[runtime]
+image = "eclipse-temurin:25"
+jvm_flags = ["-Dterminal.jline=false", "-Dterminal.ansi=true"]
+
+[build]
+# Every server is tagged as each image x each tag.
+images = ["registry.example.com/plots/{name}"]
+tags = ["latest", "{mc_version}", "{git_sha}"]
+
+[volumes]
+paths = ["logs"]
+
+[templates]
+include = ["plugins/LuckPerms/config.yml"]

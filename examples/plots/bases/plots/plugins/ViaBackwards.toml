@@ -1,0 +1,12 @@
+source = "modrinth"
+project = "viabackwards"
+
+[resolved]
+version = "5.12.1"
+url = "https://cdn.modrinth.com/data/NpvuJQoq/versions/dWw67APC/ViaBackwards-5.12.1.jar"
+sha256 = "dd72f7a459cbf1ea7862781dac92ed0ba738aa3cb3b7955e716ba379889d612a"
+size = 1436080
+mc_version = "1.21.10"
+loader = "paper"
+compat = "yes"
+spec_hash = "4344b820aad097d0"

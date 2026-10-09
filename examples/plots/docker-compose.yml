@@ -1,0 +1,44 @@
+# The images contain the server jar, plugins and configs; only runtime state is mounted.
+x-plot: &plot
+  env_file: .env          # RCON_PASSWORD, LP_DB_PASSWORD, ...
+  restart: unless-stopped
+  networks:
+    - plots
+
+services:
+  plot75:
+    <<: *plot
+    image: registry.example.com/plots/plot75:latest
+    container_name: plot75
+    environment:
+      MOTD: Plots (75x75)
+    volumes:
+      - ./data/plot75/logs:/data/logs
+      - ./data/plot75/backups:/data/plugins/PlotSquared/backups
+      - ./data/plot75/worlds:/worlds
+
+  plot251:
+    <<: *plot
+    image: registry.example.com/plots/plot251:latest
+    container_name: plot251
+    environment:
+      MOTD: Plots (251x251)
+    volumes:
+      - ./data/plot251/logs:/data/logs
+      - ./data/plot251/backups:/data/plugins/PlotSquared/backups
+      - ./data/plot251/worlds:/worlds
+
+  plot501:
+    <<: *plot
+    image: registry.example.com/plots/plot501:latest
+    container_name: plot501
+    environment:
+      MOTD: Plots (501x501)
+    volumes:
+      - ./data/plot501/logs:/data/logs
+      - ./data/plot501/backups:/data/plugins/PlotSquared/backups
+      - ./data/plot501/worlds:/worlds
+
+networks:
+  plots:
+    external: true

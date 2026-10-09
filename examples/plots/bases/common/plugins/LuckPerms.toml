@@ -1,0 +1,12 @@
+source = "modrinth"
+project = "luckperms"
+
+[resolved]
+version = "v5.5.71-bukkit"
+url = "https://cdn.modrinth.com/data/Vebnzrzj/versions/b0mk8uS6/LuckPerms-Bukkit-5.5.71.jar"
+sha256 = "49cecb66fa1fd22a133039a490e9c1e5095a238e7cd66eb9d2a16fe6c897550d"
+size = 1501521
+mc_version = "1.21.10"
+loader = "paper"
+compat = "yes"
+spec_hash = "1e860bcf8f4894d5"

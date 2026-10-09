@@ -1,0 +1,15 @@
+# GitHub releases carry no Minecraft compatibility metadata, so pin an exact tag.
+source = "github"
+project = "EssentialsX/Essentials"
+version = "2.22.0"
+asset = "EssentialsX-*.jar"
+
+[resolved]
+version = "2.22.0"
+url = "https://github.com/EssentialsX/Essentials/releases/download/2.22.0/EssentialsX-2.22.0.jar"
+sha256 = "bda4685105977fca2e209820a9f0ad24275bd103390a03236f38e59bfdac58e6"
+size = 4861125
+mc_version = "1.21.10"
+loader = "paper"
+compat = "unknown"
+spec_hash = "3ebc9734d9da4ae3"

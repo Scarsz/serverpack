@@ -1,0 +1,12 @@
+source = "modrinth"
+project = "fastasyncworldedit"
+
+[resolved]
+version = "2.16.0"
+url = "https://cdn.modrinth.com/data/z4HZZnLr/versions/U2dcKa9T/FastAsyncWorldEdit-Paper-2.16.0.jar"
+sha256 = "1a3cf8178f22d97fe78db100c7d50ebe57acdb59f3df1a972c29761ebba6f0cd"
+size = 15276112
+mc_version = "1.21.10"
+loader = "paper"
+compat = "yes"
+spec_hash = "59a29bd9249d0535"

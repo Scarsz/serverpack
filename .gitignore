@@ -1,0 +1,11 @@
+.idea
+
+/serverpack
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# serverpack build staging
+.serverpack/

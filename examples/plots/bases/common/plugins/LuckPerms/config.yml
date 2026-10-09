@@ -1,0 +1,8 @@
+# Excerpt — secrets come from the container environment (env_file) at start.
+server: ${SERVER_NAME:-global}
+storage-method: MariaDB
+data:
+  address: ${LP_DB_HOST:-mariadb:3306}
+  database: luckperms
+  username: luckperms
+  password: '${LP_DB_PASSWORD}'

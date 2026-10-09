@@ -1,0 +1,31 @@
+# Everything the plot servers share: the server jar, plot plugins and configs.
+extends = ["common"]
+
+# One pinned Paper build for every plot server. `serverpack lock` writes the pin here.
+[server]
+source = "papermc"
+project = "paper"
+version = "1.21.10"
+build = "latest"
+
+[server.resolved]
+version = "1.21.10-130"
+url = "https://fill-data.papermc.io/v1/objects/158703f75a26f842ea656b3dc6d75bf3d1ec176b97a2c36384d0b80b3871af53/paper-1.21.10-130.jar"
+sha256 = "158703f75a26f842ea656b3dc6d75bf3d1ec176b97a2c36384d0b80b3871af53"
+size = 54475623
+mc_version = "1.21.10"
+loader = "paper"
+compat = "yes"
+spec_hash = "cfa8cc81ed69e479"
+
+[runtime]
+jvm_flags_append = ["-Dviaversion.strict-error-handling1_20_5=false"]
+# Worlds live outside /data so they can be mounted as one volume.
+args = ["--world-container", "/worlds"]
+
+[volumes]
+# Runtime state under /data: never baked into the image, mounted by compose.
+paths = ["plugins/PlotSquared/backups"]
+
+[templates]
+include = ["server.properties"]
