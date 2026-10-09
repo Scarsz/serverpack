@@ -80,6 +80,7 @@ are not imported; worlds and backups are suggested as volumes in the generated s
 
 func (a *app) renderCommand() *cobra.Command {
 	var clean bool
+	var docker string
 	cmd := &cobra.Command{
 		Use:   "render <server> <outdir>",
 		Short: "Assemble the server's full /data tree without Docker",
@@ -112,7 +113,7 @@ func (a *app) renderCommand() *cobra.Command {
 					return err
 				}
 			}
-			rt, err := render.Render(cmd.Context(), p, render.Options{Cache: a.cache(), JarsDir: out, ConfigDir: out, Warn: a.warn})
+			rt, err := render.Render(cmd.Context(), p, render.Options{Cache: a.cache(), Builder: a.builder(docker), JarsDir: out, ConfigDir: out, Warn: a.warn})
 			if err != nil {
 				return err
 			}
@@ -124,6 +125,7 @@ func (a *app) renderCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&clean, "clean", false, "delete outdir first if it is not empty")
+	cmd.Flags().StringVar(&docker, "docker", "docker", "docker CLI for source builds that set docker = \"<image>\"")
 	return cmd
 }
 
@@ -154,6 +156,7 @@ tagging every [build] images x tags combination. Placeholders: {name}, {mc_versi
 				opts.Platforms = nil
 			}
 			opts.Cache, opts.Warn, opts.Stdout, opts.Stderr = a.cache(), a.warn, a.stdout, a.stderr
+			opts.Builder = a.builder(opts.Docker)
 			for _, t := range ts {
 				p, err := t.load(root)
 				if err != nil {
@@ -189,7 +192,8 @@ tagging every [build] images x tags combination. Placeholders: {name}, {mc_versi
 }
 
 func (a *app) diffCommand() *cobra.Command {
-	return &cobra.Command{
+	var docker string
+	cmd := &cobra.Command{
 		Use:   "diff <server> <live-dir>",
 		Short: "Show drift between a server definition and a live server directory",
 		Long: `Compare what the image would contain with a live server directory.
@@ -211,7 +215,7 @@ Exits with status 1 when there are differences.`,
 			if err != nil {
 				return err
 			}
-			entries, err := diff.Diff(cmd.Context(), p, args[1], diff.Options{Cache: a.cache()})
+			entries, err := diff.Diff(cmd.Context(), p, args[1], diff.Options{Cache: a.cache(), Builder: a.builder(docker)})
 			if err != nil {
 				return err
 			}
@@ -225,6 +229,8 @@ Exits with status 1 when there are differences.`,
 			return exitError{1}
 		},
 	}
+	cmd.Flags().StringVar(&docker, "docker", "docker", "docker CLI for source builds that set docker = \"<image>\"")
+	return cmd
 }
 
 func (a *app) checkCommand() *cobra.Command {
@@ -301,6 +307,7 @@ func (a *app) sourcesCommand() *cobra.Command {
 				"maven":      `repo = URL, project = group:artifact[:classifier], version = exact|latest`,
 				"url":        `url = direct download; sha256 optional (pinned at lock)`,
 				"local":      `jar committed next to the descriptor (path = override)`,
+				"build":      `built from a Gradle/Maven project: path = dir or git = URL (+ ref), task, output, tool, docker`,
 			}
 			for _, n := range source.Names() {
 				a.printf("%-11s %s\n", n, help[n])

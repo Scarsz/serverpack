@@ -380,6 +380,15 @@ func (e *Entry) LocalPath() string {
 	return filepath.Join(filepath.Dir(e.File.Abs), filepath.FromSlash(p))
 }
 
+// ProjectDir returns the project directory of a path-based build descriptor (relative to the descriptor file).
+func (e *Entry) ProjectDir() string {
+	p := filepath.FromSlash(e.Desc.Path)
+	if filepath.IsAbs(p) {
+		return filepath.Clean(p)
+	}
+	return filepath.Join(filepath.Dir(e.File.Abs), p)
+}
+
 // FindEntry finds an active descriptor by short name or relative path.
 func (p *Pack) FindEntry(name string) *Entry {
 	for _, e := range p.Entries {

@@ -16,6 +16,7 @@ import (
 	"github.com/Scarsz/serverpack/internal/pack"
 	"github.com/Scarsz/serverpack/internal/resolve"
 	"github.com/Scarsz/serverpack/internal/source"
+	"github.com/Scarsz/serverpack/internal/srcbuild"
 )
 
 func (a *app) rootOrCwd() (string, error) {
@@ -184,13 +185,16 @@ func (a *app) addCommand() *cobra.Command {
   maven                                            group:artifact (with --repo)
   jenkins, url                                     job URL / download URL
   local                                            path to a jar (copied next to the descriptor)
+  build                                            Gradle/Maven project directory, or a git URL
 
 Examples:
   serverpack add plot251 modrinth fastasyncworldedit
   serverpack add base:common hangar ViaVersion/ViaVersion
   serverpack add plot251 github EssentialsX/Essentials --asset 'EssentialsX-*.jar'
   serverpack add plot251 jenkins https://ci.lucko.me/job/LuckPerms/ --asset 'LuckPerms-Bukkit-*.jar'
-  serverpack add plot251 local ./build/libs/Internal.jar`,
+  serverpack add plot251 local ./build/libs/Internal.jar
+  serverpack add plot251 build ../plugins/Internal --task shadowJar --output 'build/libs/*-all.jar'
+  serverpack add base:plots build https://github.com/me/Fork.git --ref main --docker-image maven:3-eclipse-temurin-21`,
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			root, err := a.root()
@@ -206,12 +210,23 @@ Examples:
 				return err
 			}
 			ref := args[2]
-			var localJar string
+			var localJar, projectDir string
 			switch d.Source {
 			case "url", "jenkins":
 				d.URL = ref
 			case "local":
 				localJar = ref
+			case "build":
+				if isGitURL(ref) {
+					d.Git = ref
+				} else {
+					if projectDir, err = filepath.Abs(ref); err != nil {
+						return err
+					}
+					if _, err := srcbuild.DetectTool(projectDir, d.Tool); err != nil {
+						return err
+					}
+				}
 			default:
 				d.Project = ref
 			}
@@ -231,12 +246,20 @@ Examples:
 					return err
 				}
 			}
+			if projectDir != "" {
+				// Store the project path relative to the descriptor so the repo stays relocatable.
+				rel, err := filepath.Rel(filepath.Dir(descPath), projectDir)
+				if err != nil {
+					return err
+				}
+				d.Path = filepath.ToSlash(rel)
+			}
 			if err := descriptor.Write(descPath, &d); err != nil {
 				return err
 			}
 			rel := path.Join(filepath.ToSlash(dir), name+".toml")
 			a.printf("wrote %s\n", descPath)
-			if noLock || d.Source == "local" {
+			if noLock || source.Unpinned(&d) {
 				return nil
 			}
 			p, err := pack.LoadKind(root, kind, tname)
@@ -269,6 +292,11 @@ Examples:
 	f.StringVar(&d.MCVersion, "mc-version", "", "resolve against this Minecraft version instead of the server's")
 	f.StringVar(&d.Loader, "loader", "", "resolve for this platform instead of the server's")
 	f.StringVar(&d.SHA256, "sha256", "", "expected sha256 (url, local)")
+	f.StringVar(&d.Ref, "ref", "", "git branch, tag or commit (build from git; default HEAD)")
+	f.StringVar(&d.Tool, "tool", "", "gradle or maven (build; default: detected)")
+	f.StringVar(&d.Task, "task", "", "tasks/goals and args (build; default: gradle build / maven package)")
+	f.StringVar(&d.Output, "output", "", "output jar glob relative to the project (build)")
+	f.StringVar(&d.Docker, "docker-image", "", "build inside this Docker image instead of on the host (build)")
 	f.BoolVar(&noLock, "no-lock", false, "only write the descriptor")
 	f.BoolVar(&force, "force", false, "overwrite an existing descriptor")
 	return cmd
@@ -296,6 +324,12 @@ func suggestName(src, ref string) string {
 		if len(parts) >= 2 {
 			return clean(parts[1])
 		}
+	case "build":
+		base := path.Base(strings.TrimRight(filepath.ToSlash(ref), "/"))
+		if i := strings.LastIndex(base, ":"); i >= 0 { // git@host:repo.git
+			base = base[i+1:]
+		}
+		return clean(strings.TrimSuffix(base, ".git"))
 	case "spigot", "spiget":
 		base := path.Base(strings.TrimSuffix(ref, "/"))
 		if i := strings.LastIndex(base, "."); i > 0 {
@@ -379,6 +413,11 @@ func ensureGitignore(root string) {
 	}
 	defer f.Close()
 	f.WriteString(prefix + "# serverpack build staging\n/.serverpack/\n")
+}
+
+// isGitURL reports whether a build reference names a git repository rather than a local directory.
+func isGitURL(ref string) bool {
+	return strings.Contains(ref, "://") || strings.HasPrefix(ref, "git@") || strings.HasSuffix(ref, ".git")
 }
 
 func isWithin(dir, p string) bool {

@@ -16,6 +16,7 @@ import (
 	"github.com/Scarsz/serverpack/internal/pack"
 	"github.com/Scarsz/serverpack/internal/render"
 	"github.com/Scarsz/serverpack/internal/runtime"
+	"github.com/Scarsz/serverpack/internal/srcbuild"
 )
 
 // Kind classifies a difference.
@@ -44,8 +45,9 @@ func (e Entry) String() string {
 
 // Options configure a diff.
 type Options struct {
-	Cache  *fetch.Cache
-	Lookup func(string) (string, bool) // env for expanding templates; defaults to os.LookupEnv
+	Cache   *fetch.Cache
+	Builder *srcbuild.Builder
+	Lookup  func(string) (string, bool) // env for expanding templates; defaults to os.LookupEnv
 }
 
 // Diff renders p and compares it with liveDir. Volume paths, worlds and generated runtime files are ignored.
@@ -59,7 +61,7 @@ func Diff(ctx context.Context, p *pack.Pack, liveDir string, opts Options) ([]En
 		return nil, err
 	}
 	defer os.RemoveAll(tmp)
-	rt, err := render.Render(ctx, p, render.Options{Cache: opts.Cache, JarsDir: tmp, ConfigDir: tmp})
+	rt, err := render.Render(ctx, p, render.Options{Cache: opts.Cache, Builder: opts.Builder, JarsDir: tmp, ConfigDir: tmp})
 	if err != nil {
 		return nil, err
 	}

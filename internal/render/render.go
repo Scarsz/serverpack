@@ -16,6 +16,7 @@ import (
 	"github.com/Scarsz/serverpack/internal/fetch"
 	"github.com/Scarsz/serverpack/internal/pack"
 	"github.com/Scarsz/serverpack/internal/source"
+	"github.com/Scarsz/serverpack/internal/srcbuild"
 )
 
 // MetaDir holds serverpack's own files inside /data.
@@ -49,9 +50,16 @@ func (r *Runtime) Command() []string {
 // Options configure a render.
 type Options struct {
 	Cache     *fetch.Cache
-	JarsDir   string // output root for jars
-	ConfigDir string // output root for everything else (may equal JarsDir)
+	JarsDir   string            // output root for jars
+	ConfigDir string            // output root for everything else (may equal JarsDir)
+	Builder   *srcbuild.Builder // builds source = "build" jars
 	Warn      func(format string, args ...any)
+}
+
+// within reports whether p is dir or inside it.
+func within(dir, p string) bool {
+	rel, err := filepath.Rel(dir, p)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel)
 }
 
 // Validate reports descriptors that can't be rendered (unlocked, stale, missing local jars).
@@ -84,11 +92,32 @@ func Problems(p *pack.Pack) []error {
 			}
 			continue
 		}
+		if e.Desc.Source == "build" {
+			if err := srcbuild.ValidateSpec(e.Desc); err != nil {
+				errs = append(errs, fmt.Errorf("%s: %s: %w", p.Name, e.Where(), err))
+				continue
+			}
+			if e.Desc.Git == "" {
+				dir := e.ProjectDir()
+				if _, err := srcbuild.DetectTool(dir, e.Desc.Tool); err != nil {
+					errs = append(errs, fmt.Errorf("%s: %s: %w", p.Name, e.Where(), err))
+				}
+				for _, l := range p.Layers {
+					if within(l.Dir, dir) {
+						errs = append(errs, fmt.Errorf("%s: %s: project %s is inside %s %s, so its sources would be copied into the image; move it outside servers/ and bases/",
+							p.Name, e.Where(), dir, l.Kind, l.Name))
+					}
+				}
+				continue
+			}
+		}
 		switch {
 		case e.Desc.Resolved == nil:
 			errs = append(errs, fmt.Errorf("%s: %s is not locked; run `serverpack lock %s`", p.Name, e.Where(), p.Self.Name))
 		case e.Desc.Stale():
 			errs = append(errs, fmt.Errorf("%s: %s changed since it was locked; run `serverpack lock %s`", p.Name, e.Where(), p.Self.Name))
+		case e.Desc.Source == "build" && e.Desc.Resolved.Revision == "":
+			errs = append(errs, fmt.Errorf("%s: %s has no pinned revision; run `serverpack update %s %s`", p.Name, e.Where(), p.Self.Name, e.Name()))
 		}
 	}
 	return errs
@@ -212,6 +241,15 @@ func Render(ctx context.Context, p *pack.Pack, opts Options) (*Runtime, error) {
 					return nil, fmt.Errorf("%s: %s: sha256 mismatch: expected %s, got %s", p.Name, e.Where(), want, b.SHA256)
 				}
 			}
+		} else if e.Desc.Source == "build" {
+			if opts.Builder == nil {
+				return nil, fmt.Errorf("%s: %s: building from source is not available here", p.Name, e.Where())
+			}
+			jar, err := opts.Builder.Jar(ctx, srcbuild.SpecFor(p.Name+": "+e.Where(), e.Desc, e.ProjectDir()))
+			if err != nil {
+				return nil, err
+			}
+			src = jar
 		} else {
 			r := e.Desc.Resolved
 			blob, err := opts.Cache.Fetch(ctx, r.URL, fetch.Expect{SHA256: r.SHA256, Size: r.Size})

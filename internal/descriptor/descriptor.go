@@ -41,8 +41,14 @@ type Descriptor struct {
 	Asset            string `toml:"asset,omitempty" json:"asset,omitempty"`                         // github/jenkins artifact glob
 	Classifier       string `toml:"classifier,omitempty" json:"classifier,omitempty"`               // maven
 	URL              string `toml:"url,omitempty" json:"url,omitempty"`                             // url, jenkins job
-	Path             string `toml:"path,omitempty" json:"path,omitempty"`                           // local
+	Path             string `toml:"path,omitempty" json:"path,omitempty"`                           // local, build
 	SHA256           string `toml:"sha256,omitempty" json:"sha256,omitempty"`                       // url/local verification
+	Git              string `toml:"git,omitempty" json:"git,omitempty"`                             // build: git repository URL
+	Ref              string `toml:"ref,omitempty" json:"ref,omitempty"`                             // build: branch, tag or commit
+	Tool             string `toml:"tool,omitempty" json:"tool,omitempty"`                           // build: gradle or maven (auto-detected)
+	Task             string `toml:"task,omitempty" json:"task,omitempty"`                           // build: tasks/goals/args
+	Output           string `toml:"output,omitempty" json:"output,omitempty"`                       // build: output jar glob
+	Docker           string `toml:"docker,omitempty" json:"docker,omitempty"`                       // build: run inside this image
 
 	Resolved *Resolved `toml:"resolved,omitempty" json:"-"`
 }
@@ -60,8 +66,9 @@ const (
 type Resolved struct {
 	Version   string `toml:"version"`
 	URL       string `toml:"url,omitempty"`
-	SHA256    string `toml:"sha256"`
-	Size      int64  `toml:"size"`
+	Revision  string `toml:"revision,omitempty"` // source commit (build source)
+	SHA256    string `toml:"sha256,omitempty"`
+	Size      int64  `toml:"size,omitempty"`
 	MCVersion string `toml:"mc_version,omitempty"`
 	Loader    string `toml:"loader,omitempty"`
 	Compat    Compat `toml:"compat,omitempty"`

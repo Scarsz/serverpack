@@ -51,6 +51,8 @@ type Result struct {
 	MD5     string
 	Size    int64
 	Compat  descriptor.Compat
+	// Build sources only: the pinned source commit. Nothing is downloaded for these at lock time.
+	Revision string
 	// Server sources only: the MC version and platform of the resolved server jar.
 	MCVersion string
 	Loader    string

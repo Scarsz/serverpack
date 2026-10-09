@@ -18,6 +18,20 @@ import (
 	"github.com/Scarsz/serverpack/internal/httpx"
 )
 
+// CheckJar verifies that path is a zip/jar file by its magic bytes.
+func CheckJar(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	head := make([]byte, 4)
+	if _, err := io.ReadFull(f, head); err != nil || string(head) != "PK\x03\x04" {
+		return fmt.Errorf("is not a jar file")
+	}
+	return nil
+}
+
 // DefaultDir returns $SERVERPACK_CACHE, or <user cache dir>/serverpack.
 func DefaultDir() string {
 	if d := os.Getenv("SERVERPACK_CACHE"); d != "" {

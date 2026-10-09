@@ -52,7 +52,7 @@ func Pack(p *pack.Pack) []Finding {
 		if _, err := d.ChannelRank(); err != nil {
 			add(Error, "%s: %s: %s", p.Name, e.Where(), err)
 		}
-		if e.IsServer || d.Source == "local" || d.Resolved == nil {
+		if e.IsServer || source.Unpinned(d) || d.Source == "build" || d.Resolved == nil {
 			continue
 		}
 		want := mc

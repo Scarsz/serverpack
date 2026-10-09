@@ -3,11 +3,9 @@
 package resolve
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"slices"
 	"sync"
 
@@ -57,7 +55,7 @@ func New(opts Options) *Resolver {
 
 // selected reports whether e is resolved in this run. With Only set, nothing else is touched (even stale pins).
 func (r *Resolver) selected(e *pack.Entry) bool {
-	if e.Desc.Source == "local" {
+	if source.Unpinned(e.Desc) {
 		return false
 	}
 	if len(r.opts.Only) > 0 && !r.named(e) {
@@ -120,7 +118,7 @@ func (r *Resolver) Pack(ctx context.Context, p *pack.Pack) ([]Change, error) {
 		}
 		c := base.ForDescriptor(e.Desc)
 		if !r.selected(e) {
-			if res := e.Desc.Resolved; res != nil && e.Desc.Source != "local" && res.MCVersion != c.MCVersion && c.MCVersion != "" {
+			if res := e.Desc.Resolved; res != nil && !fromSource(e.Desc) && res.MCVersion != c.MCVersion && c.MCVersion != "" {
 				r.opts.Warn("%s: %s was resolved for Minecraft %s but the server runs %s; run `serverpack update %s %s`",
 					p.Name, e.Where(), orNone(res.MCVersion), c.MCVersion, p.Self.Name, e.Name())
 			}
@@ -180,7 +178,7 @@ func (r *Resolver) entry(ctx context.Context, p *pack.Pack, e *pack.Entry, c *so
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", where, err)
 	}
-	if !e.IsServer && d.Selector() == descriptor.Latest && res.Compat == descriptor.CompatUnknown && c.MCVersion != "" {
+	if !e.IsServer && !fromSource(d) && d.Selector() == descriptor.Latest && res.Compat == descriptor.CompatUnknown && c.MCVersion != "" {
 		r.opts.Warn("%s: %s has no Minecraft compatibility metadata; picked the newest release (%s)", p.Name, where, res.Version)
 	}
 	if !e.IsServer && res.Compat == descriptor.CompatNo {
@@ -190,12 +188,16 @@ func (r *Resolver) entry(ctx context.Context, p *pack.Pack, e *pack.Entry, c *so
 	n := &descriptor.Resolved{
 		Version:   res.Version,
 		URL:       res.URL,
+		Revision:  res.Revision,
 		SHA256:    res.SHA256,
 		Size:      res.Size,
 		MCVersion: c.MCVersion,
 		Loader:    c.Loader,
 		Compat:    res.Compat,
 		SpecHash:  d.SpecHash(),
+	}
+	if fromSource(d) {
+		n.MCVersion, n.Loader, n.Compat = "", "", "" // a source pin doesn't depend on the server
 	}
 	if e.IsServer {
 		n.MCVersion, n.Loader = res.MCVersion, res.Loader
@@ -204,7 +206,7 @@ func (r *Resolver) entry(ctx context.Context, p *pack.Pack, e *pack.Entry, c *so
 		}
 	}
 
-	if !r.opts.DryRun {
+	if !r.opts.DryRun && res.Revision == "" { // build sources pin a commit; their jars are built at render time
 		blob, err := r.opts.Cache.Fetch(ctx, res.URL, fetch.Expect{
 			SHA256: res.SHA256, SHA1: res.SHA1, SHA512: res.SHA512, MD5: res.MD5, Size: res.Size, Headers: res.Headers,
 		})
@@ -244,17 +246,14 @@ func (r *Resolver) entry(ctx context.Context, p *pack.Pack, e *pack.Entry, c *so
 
 // checkJar verifies a download is a zip/jar (catches HTML error pages and external landing pages).
 func checkJar(path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	head := make([]byte, 4)
-	if _, err := f.Read(head); err != nil || !bytes.Equal(head, []byte("PK\x03\x04")) {
-		return fmt.Errorf("download is not a jar file (an HTML page or redirect to a landing page?)")
+	if err := fetch.CheckJar(path); err != nil {
+		return fmt.Errorf("download %w (an HTML page or redirect to a landing page?)", err)
 	}
 	return nil
 }
+
+// fromSource reports whether d is built from source (no MC compatibility metadata, nothing to download).
+func fromSource(d *descriptor.Descriptor) bool { return d.Source == "build" }
 
 func orNone(s string) string {
 	if s == "" {

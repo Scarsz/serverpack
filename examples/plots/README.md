@@ -103,6 +103,13 @@ Paper sometimes only has beta builds for a brand-new Minecraft version. `lock` t
 serverpack add plot501 modrinth worldguard --name WorldGuard
 ```
 
+**Build an in-house plugin from source for every plot server**
+
+```sh
+serverpack add base:plots build ../plot-tools --task shadowJar --output 'build/libs/*-all.jar'      # Gradle project next to this repo
+serverpack add base:plots build https://github.com/me/PlotFork.git --ref main                        # pinned to a commit by lock
+```
+
 **Drop an inherited plugin from one server**
 
 ```sh

@@ -116,7 +116,6 @@ version = "1.21.10"
 [server.resolved]
 version = "1.21.10-130"
 sha256 = "ab"
-size = 0
 spec_hash = "h"
 
 [runtime]

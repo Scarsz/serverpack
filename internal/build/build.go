@@ -18,6 +18,7 @@ import (
 	"github.com/Scarsz/serverpack/internal/pack"
 	"github.com/Scarsz/serverpack/internal/render"
 	"github.com/Scarsz/serverpack/internal/source"
+	"github.com/Scarsz/serverpack/internal/srcbuild"
 	"github.com/Scarsz/serverpack/internal/version"
 )
 
@@ -27,9 +28,10 @@ const DefaultBaseImage = "eclipse-temurin:25"
 // Options configure a build.
 type Options struct {
 	Cache           *fetch.Cache
-	Images          []string // override [build] images
-	Tags            []string // override [build] tags
-	Platforms       []string // override [build] platforms
+	Builder         *srcbuild.Builder // builds source = "build" jars
+	Images          []string          // override [build] images
+	Tags            []string          // override [build] tags
+	Platforms       []string          // override [build] platforms
 	Push            bool
 	EntrypointBin   string // local linux serverpack binary to copy into the image
 	ServerpackImage string // image to COPY --from (overrides [build] serverpack_image)
@@ -76,6 +78,7 @@ func Build(ctx context.Context, p *pack.Pack, opts Options) (*Result, error) {
 	}
 	if _, err := render.Render(ctx, p, render.Options{
 		Cache:     opts.Cache,
+		Builder:   opts.Builder,
 		JarsDir:   filepath.Join(dir, "jars"),
 		ConfigDir: filepath.Join(dir, "config"),
 		Warn:      opts.Warn,

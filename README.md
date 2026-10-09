@@ -160,6 +160,36 @@ spec_hash  = "…"       # detects edits to the fields above
 | `maven` | `repo` = URL, `project` = `group:artifact[:classifier]`, `version`. Snapshots are supported. |
 | `url` | `url`, optional `sha256`. The hash is pinned at lock time. |
 | `local` | A jar committed next to the descriptor. `path` overrides the default `X.jar`. |
+| `build` | Built from a Gradle or Maven project: `path` (a directory) or `git` (a repository URL, with `ref`), plus optional `task`, `output`, `tool` and `docker`. See below. |
+
+### Building plugins from source
+
+`source = "build"` builds the jar from a Gradle or Maven project while rendering, instead of downloading it.
+
+```toml
+# plugins/Internal.toml: a project elsewhere in this checkout (monorepo or git submodule)
+source = "build"
+path   = "../../../plugins-src/Internal"   # relative to this descriptor
+task   = "shadowJar"                       # default: gradle "build", maven "package"
+output = "build/libs/*-all.jar"            # default: gradle "build/libs/*.jar", maven "target/*.jar"
+
+# plugins/Fork.toml: a project in its own git repository
+source = "build"
+git    = "https://github.com/me/Fork.git"
+ref    = "main"                            # branch, tag or full commit; default HEAD
+docker = "maven:3-eclipse-temurin-21"      # build in this image instead of on the host
+```
+
+- **Tool:** the tool is detected from `settings.gradle(.kts)` / `build.gradle(.kts)` or `pom.xml`. Set `tool` if a project has both.
+- **Runner:** the project's wrapper (`gradlew` / `mvnw`) is used, else `gradle` / `mvn` on PATH. With `docker`, the build runs in that image, and Gradle/Maven dependency caches persist in the serverpack cache.
+- **Output:** the jar is the single `output` match produced by this build. `*-sources`, `*-javadoc`, `*-plain`, `*-tests` and maven-shade's `original-*` jars are ignored. If several jars match, narrow `output`.
+- **Local projects** aren't locked: your repo's commit already versions them. Each render builds the current files, and results are cached by a hash of the project's sources, so unchanged projects don't rebuild. Keep them outside `servers/` and `bases/`, or their sources would be copied into the image (`check` reports this).
+- **Git projects** are pinned to a commit. `lock` writes `[resolved] revision`, and `update` moves branch refs to the latest commit. The build runs in a clean worktree of a cached clone and is cached per commit. Private repositories use your normal git credentials.
+
+```sh
+serverpack add plot251 build ../plugins-src/Internal --task shadowJar --output 'build/libs/*-all.jar'
+serverpack add base:plots build https://github.com/me/Fork.git --ref main --docker-image maven:3-eclipse-temurin-21
+```
 
 ## Commands
 

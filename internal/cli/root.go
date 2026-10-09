@@ -15,6 +15,7 @@ import (
 	"github.com/Scarsz/serverpack/internal/fetch"
 	"github.com/Scarsz/serverpack/internal/httpx"
 	"github.com/Scarsz/serverpack/internal/pack"
+	"github.com/Scarsz/serverpack/internal/srcbuild"
 	"github.com/Scarsz/serverpack/internal/version"
 )
 
@@ -92,6 +93,11 @@ func (a *app) cache() *fetch.Cache {
 		dir = fetch.DefaultDir()
 	}
 	return fetch.New(dir, a.http())
+}
+
+// builder builds source = "build" jars; docker is the CLI used for builds that set docker = "<image>".
+func (a *app) builder(docker string) *srcbuild.Builder {
+	return &srcbuild.Builder{Cache: a.cache(), Docker: docker, Stderr: a.stderr}
 }
 
 func (a *app) root() (string, error) {
